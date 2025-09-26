@@ -1,19 +1,30 @@
 # API de Gerenciamento de Clientes
 
-Uma API RESTful construída com Laravel para cadastro e gerenciamento de clientes, incluindo informações de endereço.
+Uma API RESTful construída com Laravel para cadastro e gerenciamento de clientes, incluindo informações de endereço. Utiliza arquitetura Service Layer para separar lógica de negócio do controller.
 
 ## Sobre o Projeto
 
-Esta é uma API baseada em Laravel que permite registrar clientes com seus endereços associados e recuperar informações dos clientes. A API implementa validação adequada, transações de banco de dados e segue as melhores práticas do Laravel.
+Esta é uma API baseada em Laravel que permite operações CRUD completas com clientes e seus endereços associados. A API implementa validação adequada, transações de banco de dados e segue as melhores práticas do Laravel com separação clara de responsabilidades.
+
+### Arquitetura
+
+- **Controllers**: Responsáveis apenas por validação e chamadas aos services
+- **Services**: Contêm toda a lógica de manipulação de dados e transações
+- **Models**: Representam as entidades e relacionamentos do banco de dados
 
 ### Funcionalidades
 
 - Cadastro de clientes com informações completas
+- Consulta de clientes com filtros por data
+- Consulta individual de cliente por ID
+- Atualização de dados de clientes e endereços
+- Exclusão de clientes e seus endereços
 - Gerenciamento de endereços (um endereço por cliente)
 - Validação de unicidade do CNPJ
-- Validação de entrada com mensagens de erro detalhadas
+- Validação de entrada com mensagens de erro em português
 - Transações de banco de dados para integridade dos dados
-- Endpoints RESTful com respostas JSON
+- Endpoints RESTful com respostas JSON padronizadas
+- Propriedade `error: true/false` em todas as respostas
 
 ## Instalação
 
@@ -88,11 +99,10 @@ Cria um novo cliente com informações de endereço.
 }
 ```
 
-#### Resposta (201):
+#### Resposta de Sucesso (201):
 ```json
 {
-  "success": true,
-  "message": "Cliente criado com sucesso",
+  "error": false,
   "data": {
     "id": 1,
     "name": "João Silva",
@@ -121,13 +131,16 @@ Cria um novo cliente com informações de endereço.
 ### Buscar Todos os Clientes
 **GET** `/api/clientes`
 
-Recupera todos os clientes cadastrados com seus endereços.
+Recupera todos os clientes cadastrados com seus endereços. Aceita parâmetros opcionais para filtrar por data.
 
-#### Resposta (200):
+#### Parâmetros Query (opcionais):
+- `startDate`: Data inicial (formato: Y-m-d H:i:s)
+- `endDate`: Data final (formato: Y-m-d H:i:s)
+
+#### Resposta de Sucesso (200):
 ```json
 {
-  "success": true,
-  "message": "Clientes recuperados com sucesso",
+  "error": false,
   "data": [
     {
       "id": 1,
@@ -155,6 +168,84 @@ Recupera todos os clientes cadastrados com seus endereços.
 }
 ```
 
+### Buscar Cliente por ID
+**GET** `/api/clientes/{id}`
+
+Recupera um cliente específico pelo ID.
+
+#### Resposta de Sucesso (200):
+```json
+{
+  "error": false,
+  "data": {
+    "id": 1,
+    "name": "João Silva",
+    "email": "joao@email.com",
+    "cnpj": "12.345.678/0001-90",
+    "observation": "Cliente premium",
+    "contract_value": "5000.50",
+    "created_at": "2025-09-25T21:36:21.000000Z",
+    "updated_at": "2025-09-25T21:36:21.000000Z",
+    "address": {...}
+  }
+}
+```
+
+### Atualizar Cliente
+**PUT** `/api/clientes/{client_id}`
+
+Atualiza informações de um cliente existente. Todos os campos são opcionais.
+
+#### Corpo da Requisição (campos opcionais):
+```json
+{
+  "name": "João Silva Atualizado",
+  "email": "joao.novo@email.com",
+  "contract_value": 6000.00,
+  "address": {
+    "street": "Rua Nova",
+    "number": "456"
+  }
+}
+```
+
+#### Resposta de Sucesso (200):
+```json
+{
+  "error": false,
+  "data": {
+    "id": 1,
+    "name": "João Silva Atualizado",
+    "email": "joao.novo@email.com",
+    "cnpj": "12.345.678/0001-90",
+    "observation": "Cliente premium",
+    "contract_value": "6000.00",
+    "updated_at": "2025-09-25T22:00:00.000000Z",
+    "address": {...}
+  }
+}
+```
+
+### Deletar Cliente
+**DELETE** `/api/clientes`
+
+Deleta um cliente e seu endereço associado.
+
+#### Corpo da Requisição:
+```json
+{
+  "id": 1
+}
+```
+
+#### Resposta de Sucesso (200):
+```json
+{
+  "error": false,
+  "message": "Cliente deletado com sucesso"
+}
+```
+
 ## Requisitos dos Campos
 
 ### Campos do Cliente
@@ -174,23 +265,29 @@ Recupera todos os clientes cadastrados com seus endereços.
 
 ## Respostas de Erro
 
-### Erro de Validação (422):
+Todas as respostas de erro seguem o padrão padronizado com a propriedade `error: true`.
+
+### Erro de Validação (400):
 ```json
 {
-  "success": false,
-  "message": "Erros de validação",
-  "errors": {
-    "cnpj": ["O cnpj já foi utilizado."]
-  }
+  "error": true,
+  "message": "O campo nome é obrigatório."
+}
+```
+
+### Cliente Não Encontrado (404):
+```json
+{
+  "error": true,
+  "message": "Cliente não encontrado"
 }
 ```
 
 ### Erro do Servidor (500):
 ```json
 {
-  "success": false,
-  "message": "Erro ao criar cliente",
-  "error": "Falha na conexão com o banco de dados"
+  "error": true,
+  "message": "Falha na conexão com o banco de dados"
 }
 ```
 
